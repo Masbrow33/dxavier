@@ -7,7 +7,18 @@ echo -e "
 "
 date
 echo ""
-domain=$(cat /root/domain)
+domain=$(cat /root/domain 2>/dev/null | tr -d '\r\n ')
+# Pengaman: domain kosong -> nginx gagal (server_name tanpa argumen)
+if [ -z "$domain" ]; then
+    domain=$(cat /etc/xray/domain 2>/dev/null | tr -d '\r\n ')
+fi
+if [ -z "$domain" ]; then
+    domain=$(curl -s -m 10 https://ipinfo.io/ip/ 2>/dev/null | tr -d '\r\n')
+fi
+if [ -z "$domain" ]; then
+    domain="127.0.0.1"
+fi
+echo "[ INFO ] Domain yang dipakai: $domain"
 sleep 1
 mkdir -p /etc/xray 
 echo -e "[ ${green}INFO${NC} ] Checking... "
@@ -54,7 +65,15 @@ touch /var/log/xray/error.log
 touch /var/log/xray/access2.log
 touch /var/log/xray/error2.log
 # / / Ambil Xray Core Version Terbaru
-bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version 1.5.6
+# Xray: pakai versi terbaru (v1.5.6 sudah tidak bisa dipasang oleh
+# install-release.sh terbaru). Fallback ke versi terbaru bila gagal.
+if ! command -v xray >/dev/null 2>&1 && [ ! -x /usr/local/bin/xray ]; then
+    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data 2>&1 | tail -3
+fi
+if ! command -v xray >/dev/null 2>&1 && [ ! -x /usr/local/bin/xray ]; then
+    echo -e "[ ${red}ERROR${NC} ] Xray gagal dipasang otomatis."
+    echo -e "[ ${yellow}INFO${NC} ] Pasang manual: bash -c \"\$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)\" @ install"
+fi
 
 
 

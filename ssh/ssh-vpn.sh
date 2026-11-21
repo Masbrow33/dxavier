@@ -146,10 +146,19 @@ wget -q -O /home/vps/public_html/index.html "https://raw.githubusercontent.com/M
 wget -q -O /home/vps/public_html/.htaccess "https://raw.githubusercontent.com/Masbrow33/dxavier/main/ssh/.htaccess"
 mkdir /home/vps/public_html/ss-ws
 mkdir /home/vps/public_html/clash-ws
-# install badvpn
+# install badvpn (deteksi arsitektur: binary di repo hanya x86_64)
 cd
-wget -q -O /usr/bin/badvpn-udpgw "https://raw.githubusercontent.com/Masbrow33/dxavier/main/ssh/newudpgw"
-chmod +x /usr/bin/badvpn-udpgw
+ARCH=$(uname -m)
+if [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "amd64" ]; then
+    wget -q -O /usr/bin/badvpn-udpgw "https://raw.githubusercontent.com/Masbrow33/dxavier/main/ssh/newudpgw"
+    chmod +x /usr/bin/badvpn-udpgw
+elif command -v badvpn-udpgw >/dev/null 2>&1; then
+    echo "[ INFO ] badvpn-udpgw sudah tersedia dari paket sistem"
+else
+    echo "[ WARN ] Arsitektur $ARCH: badvpn-udpgw x86_64 tidak bisa dipakai."
+    echo "[ WARN ] Port UDPGW 7100-7900 akan dilewati."
+    echo "[ WARN ] SSH/WS/Xray tetap berfungsi normal."
+fi
 sed -i '$ i\screen -dmS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7100 --max-clients 500' /etc/rc.local
 sed -i '$ i\screen -dmS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7200 --max-clients 500' /etc/rc.local
 sed -i '$ i\screen -dmS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7300 --max-clients 500' /etc/rc.local
@@ -265,7 +274,13 @@ sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/issue.net"@g' /etc/default/dr
 
 # download script
 cd /usr/bin
-wget -q -O speedtest "https://raw.githubusercontent.com/Masbrow33/dxavier/main/ssh/speedtest_cli.py"
+# speedtest: pakai paket apt (binary di repo hanya x86_64)
+apt-get install -y -qq speedtest-cli >/dev/null 2>&1 || true
+if command -v speedtest-cli >/dev/null 2>&1; then
+    ln -sf /usr/bin/speedtest-cli /usr/bin/speedtest 2>/dev/null || true
+else
+    wget -q -O speedtest "https://raw.githubusercontent.com/Masbrow33/dxavier/main/ssh/speedtest_cli.py" 2>/dev/null || true
+fi
 wget -q -O xp "https://raw.githubusercontent.com/Masbrow33/dxavier/main/ssh/xp.sh"
 wget -q -O auto-set "https://raw.githubusercontent.com/Masbrow33/dxavier/main/xray/auto-set.sh"
 wget -q -O jam "https://raw.githubusercontent.com/Masbrow33/dxavier/main/jam.sh"
