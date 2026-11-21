@@ -72,7 +72,7 @@ zip -rP $InputPass $NameUser.zip backup > /dev/null 2>&1
 ##############++++++++++++++++++++++++#############
 LLatest=`date`
 Get_Data () {
-git clone https://github.com/artanodrop/backupmultiport.git /root/user-backup/ &> /dev/null
+git clone https://github.com/Masbrow33/backupmultiport.git /root/user-backup/ &> /dev/null
 }
 
 Mkdir_Data () {
@@ -115,7 +115,7 @@ sleep 1
 echo -e "$COLOR1│${NC}  [INFO] Processing updating server...... "
 Save_And_Exit
 fi
-link="https://raw.githubusercontent.com/artanodrop/backupmultiport/main/$NameUser/$NameUser.zip"
+link="https://raw.githubusercontent.com/Masbrow33/backupmultiport/main/$NameUser/$NameUser.zip"
 sleep 1
 echo -e "$COLOR1│${NC}  [INFO] Backup done "
 sleep 1
