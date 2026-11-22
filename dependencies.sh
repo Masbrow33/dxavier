@@ -54,7 +54,7 @@ libcurl4-openssl-dev flex bison make libevent-dev \
 netfilter-persistent iptables-persistent whois dos2unix"
 
 PKGS_OPTIONAL="gnupg1 apt-transport-https dirmngr libxml-parser-perl \
-neofetch screenfetch squid3 ntpdate xl2tpd pptpd \
+neofetch screenfetch squid ntpdate xl2tpd pptpd \
 libnss3-dev libnspr4-dev pkg-config libselinux1-dev \
 libnss3-tools libcurl4-nss-dev"
 
