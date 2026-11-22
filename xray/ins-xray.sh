@@ -382,14 +382,15 @@ WantedBy=multi-user.target
 EOF
 cat > /etc/systemd/system/runn.service <<EOF
 [Unit]
-Description=Mampus-Anjeng
+Description=Xray runtime directory setup
+Before=xray.service
 After=network.target
 
 [Service]
-Type=simple
-ExecStartPre=-/usr/bin/mkdir -p /var/run/xray
-ExecStart=/usr/bin/chown www-data:www-data /var/run/xray
-Restart=on-abort
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/mkdir -p /var/run/xray
+ExecStart=/usr/bin/chown root:root /var/run/xray
 
 [Install]
 WantedBy=multi-user.target
@@ -460,14 +461,9 @@ sed -i '$ i}' /etc/nginx/conf.d/xray.conf
 
 sed -i '$ ilocation /' /etc/nginx/conf.d/xray.conf
 sed -i '$ i{' /etc/nginx/conf.d/xray.conf
-sed -i '$ iproxy_redirect off;' /etc/nginx/conf.d/xray.conf
-sed -i '$ iproxy_pass http://127.0.0.1:700;' /etc/nginx/conf.d/xray.conf
-sed -i '$ iproxy_http_version 1.1;' /etc/nginx/conf.d/xray.conf
-sed -i '$ iproxy_set_header X-Real-IP \$remote_addr;' /etc/nginx/conf.d/xray.conf
-sed -i '$ iproxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;' /etc/nginx/conf.d/xray.conf
-sed -i '$ iproxy_set_header Upgrade \$http_upgrade;' /etc/nginx/conf.d/xray.conf
-sed -i '$ iproxy_set_header Connection "upgrade";' /etc/nginx/conf.d/xray.conf
-sed -i '$ iproxy_set_header Host \$http_host;' /etc/nginx/conf.d/xray.conf
+sed -i '$ iroot /home/vps/public_html;' /etc/nginx/conf.d/xray.conf
+sed -i '$ iindex index.html;' /etc/nginx/conf.d/xray.conf
+sed -i '$ itry_files \$uri \$uri/ =404;' /etc/nginx/conf.d/xray.conf
 sed -i '$ i}' /etc/nginx/conf.d/xray.conf
 
 sed -i '$ ilocation ^~ /vless-grpc' /etc/nginx/conf.d/xray.conf

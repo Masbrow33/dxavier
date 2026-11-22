@@ -31,7 +31,11 @@ sleep 2
 export DEBIAN_FRONTEND=noninteractive
 
 apt update -y
-apt dist-upgrade -y
+# dist-upgrade bisa memasang kernel baru -> VPS butuh reboot di tengah
+# instalasi -> sesi SSH putus. Pakai upgrade biasa dan tahan paket kernel.
+apt upgrade -y
+apt-mark hold linux-image-generic linux-headers-generic linux-virtual \
+    linux-image-virtual 2>/dev/null || true
 apt install -y sudo
 
 # --- hapus paket yang konflik dengan autoscript ---

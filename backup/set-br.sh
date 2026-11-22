@@ -28,7 +28,14 @@ pkgs='msmtp-mta ca-certificates bsd-mailx'
 if ! dpkg -s $pkgs > /dev/null 2>&1; then
 sleep 1
 echo -e "[ ${green}INFO${NC} ] Installing... "
-apt install -y $pkgs > /dev/null 2>&1
+# msmtp-mta memunculkan dialog whiptail ("Enable AppArmor support?").
+# Tanpa noninteractive, instalasi menggantung menunggu jawaban yang tidak
+# pernah datang karena output di-redirect. Paksa noninteractive + jawab
+# pertanyaannya lebih dulu lewat debconf.
+export DEBIAN_FRONTEND=noninteractive
+echo "msmtp msmtp/apparmor boolean false" | debconf-set-selections 2>/dev/null || true
+apt install -y -o Dpkg::Options::="--force-confdef" \
+    -o Dpkg::Options::="--force-confold" $pkgs < /dev/null > /dev/null 2>&1
 else
 sleep 1
 echo -e "[ ${green}INFO${NC} ] Already Installed... "
