@@ -58,12 +58,16 @@ chown www-data.www-data $domainSock_dir
 # Make Folder XRay
 mkdir -p /var/log/xray
 mkdir -p /etc/xray
-chown www-data.www-data /var/log/xray
-chmod +x /var/log/xray
+# Service xray berjalan sebagai root (lihat xray.service), jadi log harus
+# dimiliki root. Sebelumnya di-chown ke www-data sehingga Xray gagal start
+# dengan "permission denied" saat membuka /var/log/xray/access.log.
+chown -R root:root /var/log/xray
+chmod 755 /var/log/xray
 touch /var/log/xray/access.log
 touch /var/log/xray/error.log
 touch /var/log/xray/access2.log
 touch /var/log/xray/error2.log
+chmod 644 /var/log/xray/*.log
 # / / Ambil Xray Core Version Terbaru
 # Xray: pakai versi terbaru (v1.5.6 sudah tidak bisa dipasang oleh
 # install-release.sh terbaru). Fallback ke versi terbaru bila gagal.
@@ -356,13 +360,15 @@ cat > /etc/xray/config.json << END
 END
 rm -rf /etc/systemd/system/xray.service.d
 cat <<EOF> /etc/systemd/system/xray.service
+[Unit]
 Description=Xray Service
 Documentation=https://github.com/xtls
 After=network.target nss-lookup.target
 
 [Service]
-User=www-data
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE                                 AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+User=root
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
 NoNewPrivileges=true
 ExecStart=/usr/local/bin/xray run -config /etc/xray/config.json
 Restart=on-failure
