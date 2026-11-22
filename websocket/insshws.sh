@@ -16,20 +16,26 @@ wget -q -O /usr/local/bin/ws-stunnel "$BASE/ws-stunnel"
 chmod +x /usr/local/bin/ws-dropbear
 chmod +x /usr/local/bin/ws-stunnel
 
+wget -q -O /usr/local/bin/ws-openssh "$BASE/openssh-socket.py"
+chmod +x /usr/local/bin/ws-openssh
+
+wget -q -O /etc/systemd/system/ws-openssh.service "$BASE/service-wsopenssh"
+chmod 644 /etc/systemd/system/ws-openssh.service
+
 wget -q -O /etc/systemd/system/ws-dropbear.service "$BASE/service-wsdropbear"
 wget -q -O /etc/systemd/system/ws-stunnel.service "$BASE/ws-stunnel.service"
 chmod 644 /etc/systemd/system/ws-dropbear.service
 chmod 644 /etc/systemd/system/ws-stunnel.service
 
 # Pengaman: kalau service masih menunjuk /usr/bin/python, ganti ke python3
-sed -i 's|/usr/bin/python |/usr/bin/python3 |g; s|/usr/bin/python$|/usr/bin/python3|g'     /etc/systemd/system/ws-dropbear.service /etc/systemd/system/ws-stunnel.service 2>/dev/null
+sed -i 's|/usr/bin/python |/usr/bin/python3 |g; s|/usr/bin/python$|/usr/bin/python3|g'     /etc/systemd/system/ws-dropbear.service /etc/systemd/system/ws-stunnel.service /etc/systemd/system/ws-openssh.service 2>/dev/null
 
 systemctl daemon-reload
-systemctl enable ws-dropbear.service ws-stunnel.service >/dev/null 2>&1
-systemctl restart ws-dropbear.service ws-stunnel.service
+systemctl enable ws-dropbear.service ws-stunnel.service ws-openssh.service >/dev/null 2>&1
+systemctl restart ws-dropbear.service ws-stunnel.service ws-openssh.service
 
 sleep 2
-for s in ws-dropbear ws-stunnel; do
+for s in ws-dropbear ws-stunnel ws-openssh; do
     st=$(systemctl is-active "$s" 2>&1)
     if [ "$st" = "active" ]; then
         echo "[ OK ] $s aktif"
