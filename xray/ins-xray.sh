@@ -72,7 +72,18 @@ chmod 644 /var/log/xray/*.log
 # Xray: pakai versi terbaru (v1.5.6 sudah tidak bisa dipasang oleh
 # install-release.sh terbaru). Fallback ke versi terbaru bila gagal.
 if ! command -v xray >/dev/null 2>&1 && [ ! -x /usr/local/bin/xray ]; then
-    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data 2>&1 | tail -3
+    # PENTING: jangan pakai "bash -c \"$(curl ...)\" @ install".
+    # Substitusi perintah di dalam tanda kutip ganda membuat isi skrip
+    # installer dieksekusi sebagai argumen, bukan sebagai skrip utuh,
+    # sehingga muncul "@: unknown option -- -" dan Xray tidak terpasang.
+    # Unduh ke file dulu, baru jalankan.
+    # Juga jangan pakai "-u www-data": opsi itu sudah tidak ada di
+    # install-release.sh versi sekarang (service jalan sebagai root).
+    curl -sL -o /tmp/xray-install.sh https://github.com/XTLS/Xray-install/raw/main/install-release.sh
+    if [ -s /tmp/xray-install.sh ]; then
+        bash /tmp/xray-install.sh install 2>&1 | tail -5
+        rm -f /tmp/xray-install.sh
+    fi
 fi
 if ! command -v xray >/dev/null 2>&1 && [ ! -x /usr/local/bin/xray ]; then
     echo -e "[ ${red}ERROR${NC} ] Xray gagal dipasang otomatis."
