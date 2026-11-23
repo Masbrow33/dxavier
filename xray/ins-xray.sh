@@ -486,6 +486,13 @@ sed -i '$ iproxy_set_header Connection "upgrade";' /etc/nginx/conf.d/xray.conf
 sed -i '$ iproxy_set_header Host \$http_host;' /etc/nginx/conf.d/xray.conf
 sed -i '$ i}' /etc/nginx/conf.d/xray.conf
 
+# Berkas .txt akun berisi karakter UTF-8 (•, —). Tanpa charset, browser
+# menebak Latin-1 dan menampilkan mojibake seperti "â€¢".
+sed -i '$ ilocation ^~ /akun/' /etc/nginx/conf.d/xray.conf
+sed -i '$ i{' /etc/nginx/conf.d/xray.conf
+sed -i '$ icharset utf-8;' /etc/nginx/conf.d/xray.conf
+sed -i '$ i}' /etc/nginx/conf.d/xray.conf
+
 sed -i '$ ilocation /' /etc/nginx/conf.d/xray.conf
 sed -i '$ i{' /etc/nginx/conf.d/xray.conf
 sed -i '$ iroot /home/vps/public_html;' /etc/nginx/conf.d/xray.conf
