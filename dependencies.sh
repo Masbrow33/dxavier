@@ -1,10 +1,19 @@
 #!/bin/bash
 # ==========================================================
 #  dependencies.sh — paket dasar untuk autoscript
-#  Diperbaiki: syntax error (fi yatim), $NET tak terdefinisi,
-#  dan paket usang yang tidak ada lagi di Debian/Ubuntu baru.
+#
+#  Kenapa versi ini mencetak progress:
+#  Versi lama membuang SEMUA keluaran apt ke /dev/null. Setelah baris
+#  "sudo is already the newest version", layar diam bermenit-menit
+#  padahal script masih memasang ~60 paket satu per satu. Pengguna
+#  mengira script berhenti lalu menjalankannya lagi. Dua-tiga instalasi
+#  berjalan bersamaan, saling mengunci dpkg, dan VPS kehabisan memori
+#  sampai tidak bisa di-SSH.
+#
+#  Sekarang: nomor urut per paket, log lengkap, dan apt diminta
+#  menunggu lock (DPkg::Lock::Timeout) alih-alih menggantung diam.
 # ==========================================================
-clear
+[ -n "$TERM" ] && clear 2>/dev/null || true
 red='\e[1;31m'
 green='\e[1;32m'
 yell='\e[1;33m'
@@ -12,6 +21,12 @@ NC='\e[0m'
 green() { echo -e "\033[32;1m${*}\033[0m"; }
 red()   { echo -e "\033[31;1m${*}\033[0m"; }
 yellow(){ echo -e "\033[33;1m${*}\033[0m"; }
+
+LOG=/var/log/yokkovpn-deps.log
+: > "$LOG" 2>/dev/null || { LOG=/tmp/yokkovpn-deps.log; : > "$LOG"; }
+
+# Opsi apt: tunggu lock maksimal 5 menit, jangan menggantung selamanya.
+APT_OPTS="-o DPkg::Lock::Timeout=300 -o Dpkg::Use-Pty=0"
 
 if [[ -e /etc/debian_version ]]; then
     # shellcheck disable=SC1091
@@ -30,20 +45,43 @@ sleep 2
 
 export DEBIAN_FRONTEND=noninteractive
 
-apt update -y
+# --- tunggu apt lain selesai, dengan pemberitahuan ---
+_apt_wait() {
+    local i=0
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+        [ "$i" -eq 0 ] && yellow "Menunggu proses apt lain selesai (maks 5 menit)..."
+        i=$((i+1))
+        [ "$i" -ge 300 ] && { red "Lock apt tidak lepas setelah 5 menit."; return 1; }
+        sleep 1
+    done
+    return 0
+}
+
+yellow "[1/5] apt update"
+_apt_wait && apt update -y >>"$LOG" 2>&1 || true
+echo "      selesai"
+
 # dist-upgrade bisa memasang kernel baru -> VPS butuh reboot di tengah
 # instalasi -> sesi SSH putus. Pakai upgrade biasa dan tahan paket kernel.
-apt upgrade -y
+yellow "[2/5] apt upgrade"
+_apt_wait && apt upgrade -y $APT_OPTS >>"$LOG" 2>&1 || true
+echo "      selesai"
+
+yellow "[3/5] tahan paket kernel + sudo"
 apt-mark hold linux-image-generic linux-headers-generic linux-virtual \
-    linux-image-virtual 2>/dev/null || true
-apt install -y sudo
+    linux-image-virtual >>"$LOG" 2>&1 || true
+_apt_wait && apt install -y sudo $APT_OPTS >>"$LOG" 2>&1 || true
+echo "      selesai"
 
 # --- hapus paket yang konflik dengan autoscript ---
-apt-get remove --purge -y ufw firewalld exim4 >/dev/null 2>&1 || true
+yellow "[4/5] hapus ufw / firewalld / exim4"
+_apt_wait && apt-get remove --purge -y ufw firewalld exim4 $APT_OPTS >>"$LOG" 2>&1 || true
+echo "      selesai"
 
 # ----------------------------------------------------------
-#  Install paket satu per satu supaya satu paket hilang
-#  tidak menggagalkan seluruh instalasi.
+#  Install paket. Coba borongan dulu (cepat). Kalau ada satu nama
+#  paket yang tidak tersedia di repo, ulangi satu per satu supaya
+#  paket lain tetap terpasang.
 # ----------------------------------------------------------
 PKGS_CORE="screen curl jq bzip2 gzip coreutils rsyslog iftop htop zip unzip \
 net-tools sed bc sudo build-essential git lsof openssl \
@@ -58,24 +96,42 @@ neofetch screenfetch squid ntpdate xl2tpd pptpd \
 libnss3-dev libnspr4-dev pkg-config libselinux1-dev \
 libnss3-tools libcurl4-nss-dev"
 
-installed=0; skipped=0
-for p in $PKGS_CORE $PKGS_OPTIONAL; do
-    if dpkg -s "$p" >/dev/null 2>&1; then
-        installed=$((installed+1))
-        continue
-    fi
-    if apt-get install -y -qq "$p" >/dev/null 2>&1; then
-        installed=$((installed+1))
-    else
-        skipped=$((skipped+1))
-    fi
-done
+yellow "[5/5] pasang paket"
+_apt_wait
+
+# debconf noninteraktif untuk paket yang biasanya bertanya
+echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections 2>/dev/null || true
+echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections 2>/dev/null || true
+
+TOTAL=$(echo $PKGS_CORE $PKGS_OPTIONAL | wc -w)
+printf "      %d paket, memasang sekaligus... " "$TOTAL"
+if timeout 900 apt-get install -y -qq $APT_OPTS $PKGS_CORE $PKGS_OPTIONAL >>"$LOG" 2>&1; then
+    echo "OK"
+    installed=$TOTAL; skipped=0
+else
+    echo "ada yang tidak tersedia, ulangi satu per satu"
+    installed=0; skipped=0; n=0
+    for p in $PKGS_CORE $PKGS_OPTIONAL; do
+        n=$((n+1))
+        if dpkg -s "$p" >/dev/null 2>&1; then
+            installed=$((installed+1))
+            continue
+        fi
+        printf "      [%2d/%d] %-26s " "$n" "$TOTAL" "$p"
+        if timeout 300 apt-get install -y -qq $APT_OPTS "$p" >>"$LOG" 2>&1; then
+            printf "OK\n"; installed=$((installed+1))
+        else
+            printf "dilewati\n"; skipped=$((skipped+1))
+        fi
+    done
+fi
 green "Paket terpasang: $installed | dilewati (tidak tersedia): $skipped"
 
 # --- Node.js ---
 if ! command -v node >/dev/null 2>&1; then
-    curl -fsSL https://deb.nodesource.com/setup_20.x 2>/dev/null | bash - >/dev/null 2>&1
-    apt-get install -y nodejs >/dev/null 2>&1 || true
+    yellow "Node.js belum ada, memasang..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x 2>/dev/null | bash - >>"$LOG" 2>&1
+    timeout 300 apt-get install -y nodejs $APT_OPTS >>"$LOG" 2>&1 || true
 fi
 
 # ----------------------------------------------------------
@@ -118,5 +174,6 @@ else
 fi
 
 yellow "Dependencies successfully installed..."
+echo "Log lengkap: $LOG"
 sleep 3
-clear
+[ -n "$TERM" ] && clear 2>/dev/null || true
