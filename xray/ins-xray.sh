@@ -90,6 +90,19 @@ if ! command -v xray >/dev/null 2>&1 && [ ! -x /usr/local/bin/xray ]; then
     echo -e "[ ${yellow}INFO${NC} ] Pasang manual: bash -c \"\$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)\" @ install"
 fi
 
+# PENTING: install-release.sh resmi MEMBUAT ULANG /var/log/xray menjadi
+# milik user "xray" dengan mode 700. Service kita berjalan sebagai root
+# dengan CapabilityBoundingSet terbatas (tanpa CAP_DAC_OVERRIDE), sehingga
+# root TIDAK bisa menembus direktori 700 milik user lain dan Xray gagal:
+#   "open /var/log/xray/access.log: permission denied"
+# Perbaikan harus dijalankan SETELAH installer resmi, bukan sebelumnya.
+mkdir -p /var/log/xray
+chown -R root:root /var/log/xray
+chmod 755 /var/log/xray
+touch /var/log/xray/access.log /var/log/xray/error.log \
+      /var/log/xray/access2.log /var/log/xray/error2.log
+chmod 644 /var/log/xray/*.log 2>/dev/null || true
+
 
 
 ## crt xray
@@ -378,8 +391,12 @@ After=network.target nss-lookup.target
 
 [Service]
 User=root
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+# CAP_DAC_OVERRIDE wajib: tanpa itu root tidak bisa menulis ke
+# /var/log/xray bila direktori itu dimiliki user lain (installer resmi
+# XTLS membuatnya milik user "xray" mode 700). Tanpa cap ini Xray gagal
+# start dengan "open /var/log/xray/access.log: permission denied".
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_DAC_OVERRIDE
 NoNewPrivileges=true
 ExecStart=/usr/local/bin/xray run -config /etc/xray/config.json
 Restart=on-failure
