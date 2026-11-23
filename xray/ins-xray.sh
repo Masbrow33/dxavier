@@ -566,9 +566,16 @@ sleep 1
 echo -e "[ ${green}ok${NC} ] Enable & restart xray "
 systemctl enable xray
 systemctl restart xray
+# nginx wajib di-enable: tanpa ini nginx mati setelah reboot dan semua
+# path WebSocket (/vless, /vmess, /trojan-ws, /ss-ws) serta halaman
+# /akun/ ikut mati, padahal xray tetap hidup.
+systemctl enable nginx
 systemctl restart nginx
-systemctl enable runn
-systemctl restart runn
+# runn tidak selalu ada di semua image; jangan sampai mencetak error
+if systemctl list-unit-files 2>/dev/null | grep -q '^runn\.service'; then
+    systemctl enable runn
+    systemctl restart runn
+fi
 
 sleep 1
 wget -q -O /usr/bin/auto-set "https://raw.githubusercontent.com/Masbrow33/dxavier/main/xray/auto-set.sh" && chmod +x /usr/bin/auto-set 

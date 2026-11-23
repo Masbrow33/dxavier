@@ -138,6 +138,8 @@ mkdir /etc/systemd/system/nginx.service.d
 printf "[Service]\nExecStartPost=/bin/sleep 0.1\n" > /etc/systemd/system/nginx.service.d/override.conf
 rm /etc/nginx/conf.d/default.conf
 systemctl daemon-reload
+# enable supaya nginx hidup lagi setelah reboot
+systemctl enable nginx >/dev/null 2>&1
 service nginx restart
 cd
 mkdir /home/vps
