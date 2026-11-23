@@ -190,8 +190,13 @@ echo "=== Install Dropbear ==="
 sed -i 's/NO_START=1/NO_START=0/g' /etc/default/dropbear
 sed -i 's/DROPBEAR_PORT=22/DROPBEAR_PORT=143/g' /etc/default/dropbear
 sed -i 's/DROPBEAR_EXTRA_ARGS=/DROPBEAR_EXTRA_ARGS="-p 50000 -p 109 -p 110 -p 69"/g' /etc/default/dropbear
-echo "/bin/false" >> /etc/shells
-echo "/usr/sbin/nologin" >> /etc/shells
+# Jaga idempoten: tanpa penjaga, /etc/shells bertambah tiap install.
+grep -qxF '/bin/false' /etc/shells 2>/dev/null || echo "/bin/false" >> /etc/shells
+grep -qxF '/usr/sbin/nologin' /etc/shells 2>/dev/null || echo "/usr/sbin/nologin" >> /etc/shells
+if [ -f /etc/shells ]; then
+    awk '!seen[$0]++' /etc/shells > /etc/shells.tmp && mv /etc/shells.tmp /etc/shells
+    chmod 644 /etc/shells
+fi
 /etc/init.d/ssh restart
 /etc/init.d/dropbear restart
 
@@ -227,7 +232,11 @@ END
 openssl genrsa -out key.pem 2048
 openssl req -new -x509 -key key.pem -out cert.pem -days 1095 \
 -subj "/C=$country/ST=$state/L=$locality/O=$organization/OU=$organizationalunit/CN=$commonname/emailAddress=$email"
-cat key.pem cert.pem >> /etc/stunnel/stunnel.pem
+# Tulis ULANG (>), bukan tambah (>>). Dengan >>, instalasi kedua
+# menyisipkan key+cert lagi sehingga file membengkak tiap install.
+mkdir -p /etc/stunnel
+cat key.pem cert.pem > /etc/stunnel/stunnel.pem
+chmod 600 /etc/stunnel/stunnel.pem
 
 # konfigurasi stunnel
 sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4
