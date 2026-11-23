@@ -1,272 +1,271 @@
 <!DOCTYPE html>
-<html lang="en">
-
-<!-- Simple OVPN Download site -->
-
-<head><meta charset="utf-8" />
-<title>SCVPN AUTOSCRIPT VPN WSS</title>
-<meta name="description" content="Server" />
-<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
-<meta name="theme-color" content="#000000" />
-</head><body>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>EKO BELLICK PREMIUM — Premium VPN Server</title>
+<meta name="description" content="EKO BELLICK PREMIUM — akun SSH, VMESS, VLESS, TROJAN dengan koneksi stabil dan cepat." />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#08090d" />
 <style>
-* {
-margin: 0;
-padding: 0;
+:root{
+  --bg:#08090d;
+  --bg2:#0d1017;
+  --card:#11141c;
+  --line:#252b3a;
+  --txt:#e8edf5;
+  --dim:#c2cbdb;
+  --dim2:#95a0b5;
+  --acc:#39d98a;
+  --acc2:#2bb673;
+  --glow:rgba(57,217,138,.14);
 }
-html {
-min-height: 100%;
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{min-height:100%}
+body{
+  min-height:100vh;
+  min-height:100dvh;
+  background:var(--bg);
+  color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Ubuntu,sans-serif;
+  line-height:1.6;
+  display:flex;flex-direction:column;align-items:center;
+  padding:calc(env(safe-area-inset-top,0px) + 0px) 18px calc(env(safe-area-inset-bottom,0px) + 20px);
+  overflow-x:hidden;
+  position:relative;
 }
-body {
-color:#fff;
-background-color: #333;
+/* cahaya latar */
+body::before{
+  content:"";position:fixed;top:-180px;left:50%;transform:translateX(-50%);
+  width:560px;height:560px;border-radius:50%;
+  background:radial-gradient(circle,var(--glow) 0%,transparent 68%);
+  pointer-events:none;z-index:0;
 }
-header {
-background-color: #292929;
-background-image: -webkit-linear-gradient(hsla(0,0%,0%,.1), transparent);
-box-shadow: inset 0 -10px 30px -10px hsla(0,0%,0%,.5),
-0 1px 0 hsla(0,0%,100%,.1);
-height: 3em;
-margin-bottom: 3em;
-}
-header div {
-margin: 0 auto;
-width: 18em;
-}
-header a {
-background: transparent;
-box-shadow: none;
-color: #888;
-display: inline;
-font: 1em/3 sans-serif;
-position: relative;
-top: 0;
-text-shadow: 0 2px 2px #000;
-}
-header a:hover,
-header a:focus {
-color: #ddd;
-}
-header a:active {
-box-shadow: none;
-top: 1px;
--webkit-transition: 0;
-}
-h1 {
-color: hsla(0,0%,0%,.4);
-font: bold 3em/1 sans-serif;
-margin-bottom: .5em;
-text-align: center;
-text-shadow: 0 1px 2px hsla(0,0%,100%,.2), 0 0 0 #000;
-}
-.content {
-display: table;
-height: 100%;
-margin: 0 auto;
-width: 80%;
-}
-ul {
-display: table-cell;
-list-style: none;
-text-align: center;
-vertical-align: middle;
-}
-li {
-background-color: #f6f6f6;
-background-image: -webkit-radial-gradient(circle, transparent, hsla(0,0%,0%,.25));
-background-position: 50% 0%;
-background-size: 200% 200%;
-border-radius: .5em .5em 0 0;
-box-shadow: inset 0 1px 0 #fff,
-0 1px 0 1px hsla(0,0%,0%,.25),
-0 3px 7px hsla(0,0%,0%,.5);
-color: #333;
-display: inline-block;
-font: bold 1em/1.5 sans-serif;
-margin: 1.5em 1.5em 5em;
-padding-top: 1.5em;
-position: relative;
-vertical-align: bottom;
-width: 18em;
--webkit-filter: drop-shadow(0 2px 3px hsla(0,0%,0%,.25));
-}
-li:after,
-li:before {
-background-color: #bbb;
-background-image: -webkit-radial-gradient(circle, transparent, hsla(0,0%,0%,.25));
-background-position: 50% 75%;
-background-size: 150% 150%;
-box-shadow: inset 0 1px 1px 1px hsla(0,0%,100%,.25),
-inset 0 -1px 1px 1px hsla(0,0%,0%,.25),
-0 2px 2px 1px hsla(0,0%,0%,.4),
-0 0 0 1px hsla(0,0%,0%,.5),
-2px 2px 3px hsla(0,0%,0%,.25),
--2px 2px 3px hsla(0,0%,0%,.25);
-content: '';
-height: 2em;
-margin-top: .5em;
-position: absolute;
-top: 50%;
-width: .5em;
-}
-li:after {
-border-radius: .25em 100% 100% .25em;
-left: -.2em;
-}
-li:before {
-border-radius: 100% .25em .25em 100%;
-right: -.2em;
-}
-p {
-margin-bottom: 1.5em;
-padding: 0 1.5em;
-text-shadow: 0 1px 1px #fff;
-}
-a {
-background-color: #f6f6f6;
-background-image: -webkit-radial-gradient(circle, transparent, hsla(0,0%,0%,.15)),
--webkit-linear-gradient(hsla(0,0%,0%,.15), hsla(0,0%,0%,.025) 45%, transparent 50%);
-background-position: 50% 100%, 0 100%;
-background-size: 100% 200%, 100% 200%;
-border-radius: 0 0 .25em .25em;
-box-shadow: inset 0 1px 0 hsla(0,0%,100%,1),
-0 0 0 1px hsla(0,0%,0%,.25),
-0 6px 10px hsla(0,0%,0%,.5);
-color: #888;
-display: block;
-left: 0;
-line-height: 1.5;
-padding: 1em 0;
-position: absolute;
-right: 0;
-text-decoration: none;
-text-shadow: 0 1px 1px hsla(0,0%,100%,.4);
-top: 100%;
--webkit-transform: perspective(500) rotateX(0deg);
--webkit-transform-origin: 50% 0;
--webkit-transition: .1s;
-}
-li:hover a {
-color: #666;
-}
-a:active {
-background-position:50% 100%, 0 0;
-box-shadow: inset 0 1px 0 hsla(0,0%,100%,.5),
-0 0 0 1px hsla(0,0%,0%,.25),
-0 2px 3px hsla(0,0%,0%,.75);
-color: #555;
--webkit-transform: perspective(500) rotateX(-10deg);
-}
-.icon {
-background-image: -webkit-linear-gradient(transparent 50%, #6cf 50%);
-background-position: 50% 0;
-background-size: 200% 200%;
-display: block;
-height: 1.5em;
-font-style: normal;
-margin: 0 1.5em 1.5em;
-position: relative;
--webkit-transition: .25s;
-}
-li:hover .icon {
-background-position: 50% 100%;
-}
-.icon:after {
-background-color: hsla(0,0%,0%,.15);
-box-shadow: 0 1px 1px hsla(0,0%,100%,.6),
-0 -1px 1px hsla(0,0%,0%,.1),
-inset 0 0 0 1px hsla(0,0%,0%,.15);
-color: #eee;
-font-size: .8em;
-left: 0;
-line-height: 1.875;
-position: absolute;
-right: 0;
-text-align: center;
-text-shadow: 0 1px 1px hsla(0,0%,0%,.25);
-text-transform: uppercase;
-}
-.icon:before {
-background:#000;
-content: '';
-height: 100%;
-left: 0;
-position: absolute;
-top: 0;
-width: 100%;
-}
-.SSH:after { 
-content: 'SSH WS';
-}
-.VLESS:after {
-content: 'VLESS WS';
-}
-.VMESS:after {
-content: 'VMESS WS';
-}
-.TROJAN:after {
-content: 'TROJAN WSS & GRPC';
-}
-.ZIP:after {
-content: 'ZIP';
-}
-.SSL:after {
-content: 'SSL';
-}
-@media (min-width: 52.85em) {
-header div {
-width: 39em;
-}
-}
-@media (min-width: 79.38em) {
-header div {
-width: 60em;
-}
-}
-@media (min-width: 105.95em) {
-header div {
-width: 81em;
-}
-}
-​</style>
-<header>
-<div>
-<a href="https://www.dotycat.com/">&larr; Back to Dotycat</a>
-</div>
-</header>
-<h1>scvpn.me</h1>
-<div class="content">
-<ul>
-<li>
-<i class="icon SSH"></i>
-<p>WSS PORT 443<br/>
-RM 5 / 30D<br/>
-SG / MY<br/>
-<a href="wa.me/6281949400586/">BUY NOW</a>
-</li>
-<li>
-<i class="icon VMESS"></i>
-<p>WSS PORT 443/80<br/>
-RM 5 / 30D<br/>
-SG / MY<br/>
-<a href="wa.me/6281949400586/">BUY NOW</a>
-</li>
-<li>
-<i class="icon VLESS"></i>
-<p>WSS PORT 443/80<br/>
-RM 5 / 30D<br/>
-SG / MY<br/>
-<a href="wa.me/6281949400586/">BUY NOW</a>
-</li>
-<li>
-<i class="icon TROJAN"></i>
-<p>WSS & GRPC PORT 443<br/>
-RM 5 / 30D<br/>
-SG / MY<br/>
-<a href="wa.me/6281949400586/">BUY NOW</a>
-</li>
-</ul>
-</div>
+.wrap{width:100%;max-width:480px;position:relative;z-index:1;display:flex;flex-direction:column;flex:1 1 auto}
+.wrap > footer{margin-top:26px}
 
+/* ---------- header ---------- */
+header{
+  text-align:center;padding:30px 0 22px;
+}
+.logo{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:16px;
+  background:linear-gradient(145deg,#1a3d2c,#0f1f18);
+  border:1px solid #2a5c42;
+  box-shadow:0 8px 24px rgba(57,217,138,.16),inset 0 1px 0 rgba(255,255,255,.06);
+  margin-bottom:14px;
+}
+.logo svg{width:28px;height:28px;stroke:var(--acc);fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+h1{
+  font-size:19px;font-weight:700;letter-spacing:1.4px;
+  background:linear-gradient(180deg,#fff,#9fb3a8);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:4px;
+}
+.sub{font-size:11px;letter-spacing:2.6px;color:#9ba6bb;text-transform:uppercase}
 
-</body></html>
+/* ---------- status pill ---------- */
+.status{
+  display:inline-flex;align-items:center;gap:7px;
+  margin-top:16px;padding:6px 13px;border-radius:100px;
+  background:rgba(57,217,138,.08);
+  border:1px solid rgba(57,217,138,.22);
+  font-size:11.5px;color:#5ee6a3;font-weight:600;
+}
+.dot{
+  width:6px;height:6px;border-radius:50%;background:var(--acc);
+  box-shadow:0 0 0 0 rgba(57,217,138,.6);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(57,217,138,.55)}
+  70%{box-shadow:0 0 0 8px rgba(57,217,138,0)}
+  100%{box-shadow:0 0 0 0 rgba(57,217,138,0)}
+}
+
+/* ---------- kartu layanan ---------- */
+.section-label{
+  font-size:10.5px;letter-spacing:2.2px;color:#9ba6bb;
+  text-transform:uppercase;margin:30px 0 13px;padding-left:2px;
+}
+ul{list-style:none;display:grid;gap:10px}
+li{
+  flex-shrink:0;
+  background:linear-gradient(160deg,var(--card),#0c0f15);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:15px 16px;
+  display:flex;align-items:center;gap:13px;
+  transition:border-color .25s,transform .25s,box-shadow .25s;
+  position:relative;overflow:hidden;
+}
+li::after{
+  content:"";position:absolute;inset:0;border-radius:14px;
+  background:linear-gradient(120deg,transparent 30%,rgba(57,217,138,.05) 50%,transparent 70%);
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+li:hover{border-color:#2a5c42;transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.35)}
+li:hover::after{opacity:1}
+.ico{
+  flex:0 0 38px;height:38px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(57,217,138,.07);
+  border:1px solid rgba(57,217,138,.16);
+}
+.ico svg{width:18px;height:18px;stroke:var(--acc);fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.meta{flex:1;min-width:0}
+.name{font-size:14px;font-weight:650;letter-spacing:.6px;color:var(--txt)}
+.desc{font-size:11.5px;color:var(--dim);margin-top:1px}
+.badge{
+  font-size:9px;font-weight:700;letter-spacing:.5px;
+  padding:4px 2px;border-radius:6px;
+  width:70px;flex:0 0 70px;text-align:center;
+  background:rgba(57,217,138,.1);color:var(--acc);
+  border:1px solid rgba(57,217,138,.2);
+  white-space:nowrap;flex-shrink:0;
+}
+
+/* ---------- CTA ---------- */
+.cta{
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  margin-top:26px;padding:15px 20px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  color:#04140c;text-decoration:none;
+  border-radius:13px;font-weight:750;font-size:14px;letter-spacing:.3px;
+  box-shadow:0 4px 16px rgba(57,217,138,.18);
+  transition:transform .2s,box-shadow .2s;
+}
+.cta:active{transform:scale(.975);box-shadow:0 4px 16px rgba(57,217,138,.3)}
+.cta svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- trust ---------- */
+.trust{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:7px 15px;
+  margin-top:20px;padding:0 2px;
+}
+.trust span{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11.5px;color:#96a1b5;white-space:nowrap;
+}
+.trust svg{width:12px;height:12px;stroke:var(--acc);fill:none;stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+
+/* ---------- footer ---------- */
+footer{
+  margin-top:26px;padding-top:4px;text-align:center;
+}
+footer::before{
+  content:"";display:block;width:64px;height:1px;margin:0 auto 14px;
+  background:linear-gradient(90deg,transparent,var(--line),transparent);
+}
+footer .brand{font-size:12px;color:#a3adc0;letter-spacing:1.4px;font-weight:600}
+footer .tg{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:9px;font-size:12px;color:var(--dim);
+  text-decoration:none;padding:8px 12px;border-radius:8px;
+}
+footer .tg svg{width:14px;height:14px;stroke:#39d98a;fill:none;stroke-width:1.7;opacity:.8}
+footer .tg{color:#aab4c7}
+footer .tg:hover{color:var(--acc)}
+footer .tg:hover svg{stroke:var(--acc)}
+
+/* scrollbar bertema */
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#232a38;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:#2e3748}
+
+/* jarak hero lebih rapat */
+header{padding:26px 0 18px}
+.status{margin-top:14px}
+.section-label{margin:22px 0 12px}
+
+/* ikon & badge sedikit lebih besar */
+.ico{flex:0 0 42px;height:42px;border-radius:12px}
+.ico svg{width:20px;height:20px}
+.badge{font-size:10px;padding:4px 8px}
+.desc{font-size:12px}
+
+/* fade bawah sebagai penanda scroll */
+body::after{
+  content:"";position:fixed;left:0;right:0;bottom:0;height:64px;
+  background:linear-gradient(to top,var(--bg) 10%,transparent);
+  pointer-events:none;z-index:2;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6l-8-4z"/><path d="m9 12 2 2 4-4"/></svg>
+    </div>
+    <h1>EKO BELLICK PREMIUM</h1>
+    <div class="sub">Premium VPN Server</div>
+    <div class="status"><span class="dot"></span>Server aktif &middot; siap dipakai</div>
+  </header>
+
+  <div class="section-label">Pilih layanan</div>
+
+  <ul>
+    <li>
+      <span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg></span>
+      <span class="meta">
+        <div class="name">SSH</div>
+        <div class="desc">WebSocket &middot; port 443</div>
+      </span>
+      <span class="badge">STABIL</span>
+    </li>
+    <li>
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3 3 7.5l9 4.5 9-4.5L12 3z"/><path d="m3 12 9 4.5L21 12M3 16.5 12 21l9-4.5"/></svg></span>
+      <span class="meta">
+        <div class="name">VMESS</div>
+        <div class="desc">WebSocket &middot; port 443 / 80</div>
+      </span>
+      <span class="badge">POPULER</span>
+    </li>
+    <li>
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M13 2 4.5 13H11l-1 9 8.5-11H12l1-9z"/></svg></span>
+      <span class="meta">
+        <div class="name">VLESS</div>
+        <div class="desc">WebSocket &middot; port 443 / 80</div>
+      </span>
+      <span class="badge">RINGAN</span>
+    </li>
+    <li>
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 4.4 3.4 7.6 8 9 4.6-1.4 8-4.6 8-9V7l-8-4z"/><path d="M12 9v4M12 16h.01"/></svg></span>
+      <span class="meta">
+        <div class="name">TROJAN</div>
+        <div class="desc">WebSocket &amp; gRPC &middot; port 443</div>
+      </span>
+      <span class="badge">PREMIUM</span>
+    </li>
+  </ul>
+
+  <a class="cta" href="https://t.me/MasbroW33">
+    <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+    Order &amp; Trial via Telegram
+  </a>
+
+  <div class="trust">
+    <span><svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg>Tanpa batas kuota</span>
+    <span><svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg>Support 24 jam</span>
+    <span><svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg>Aktif instan</span>
+  </div>
+
+  <footer>
+    <div class="brand">EKO BELLICK PREMIUM</div>
+    <a class="tg" href="https://t.me/MasbroW33">
+      <svg viewBox="0 0 24 24"><path d="M21 4 3 11l5 2 2 6 3-4 5 3 3-14z"/></svg>
+      t.me/MasbroW33
+    </a>
+  </footer>
+
+</div>
+</body>
+</html>
