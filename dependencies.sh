@@ -89,7 +89,8 @@ fail2ban tmux stunnel4 vnstat dropbear libsqlite3-dev \
 socat cron bash-completion xz-utils gnupg dnsutils lsb-release chrony \
 openvpn easy-rsa libpam0g-dev libcap-ng-dev libcap-ng-utils \
 libcurl4-openssl-dev flex bison make libevent-dev \
-netfilter-persistent iptables-persistent whois dos2unix"
+netfilter-persistent iptables-persistent whois dos2unix \
+openssh-server"
 
 PKGS_OPTIONAL="gnupg1 apt-transport-https dirmngr libxml-parser-perl \
 neofetch screenfetch squid ntpdate xl2tpd pptpd \

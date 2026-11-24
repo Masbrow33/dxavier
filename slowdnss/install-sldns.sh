@@ -150,18 +150,49 @@ done
 sed -i 's/^#*AllowTcpForwarding.*/AllowTcpForwarding yes/' /etc/ssh/sshd_config 2>/dev/null
 
 # Validasi konfigurasi sebelum reload. Bedakan dua kemungkinan:
-# (a) binary sshd tidak ada — bukan salah config, jangan beri peringatan
-#     menyesatkan; (b) config benar-benar tidak sah.
+# (a) binary sshd tidak ada — bukan salah config, tapi juga bukan alasan
+#     untuk menyerah: tanpa openssh-server SEMUA port tambahan mati,
+#     sementara pelanggan tetap diberi tahu "OpenSSH : 22". Pasang
+#     paketnya di sini juga, jangan hanya memberi peringatan.
+# (b) config benar-benar tidak sah.
 if ! command -v sshd >/dev/null 2>&1; then
-    warn "openssh-server tidak terpasang — Port tambahan belum aktif."
-    warn "  Pasang dengan: apt install openssh-server"
-elif sshd -t 2>/dev/null; then
-    systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
-    ok "sshd direload"
-else
-    err "sshd_config TIDAK SAH setelah penambahan Port — reload dilewati."
-    err "  Periksa: sshd -t"
-    err "  Port ${SSH_PORT}/${CLIENT_SSH_PORT} belum aktif sampai config diperbaiki."
+    warn "openssh-server tidak terpasang — mencoba memasang..."
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        -o DPkg::Lock::Timeout=300 -o Dpkg::Use-Pty=0 openssh-server \
+        </dev/null >/dev/null 2>&1 || true
+    if command -v sshd >/dev/null 2>&1; then
+        ok "openssh-server terpasang"
+    else
+        err "openssh-server GAGAL dipasang — Port ${SSH_PORT}/${CLIENT_SSH_PORT} tidak akan aktif."
+        err "  Pasang manual: apt install openssh-server"
+    fi
+fi
+
+if command -v sshd >/dev/null 2>&1; then
+    # Ubuntu 24.04 memakai ssh.socket (socket activation): systemd yang
+    # memegang port 22 dan sshd TIDAK membaca direktif "Port", sehingga
+    # port tambahan tidak pernah terbuka walau tertulis di config.
+    if systemctl list-unit-files 2>/dev/null | grep -q '^ssh.socket'; then
+        systemctl disable --now ssh.socket >/dev/null 2>&1 || true
+    fi
+    systemctl enable ssh >/dev/null 2>&1 || true
+
+    if sshd -t 2>/dev/null; then
+        systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || true
+        sleep 2
+        # Buktikan port benar-benar mendengarkan, jangan percaya status unit.
+        for p in "$SSH_PORT" "$CLIENT_SSH_PORT"; do
+            if ss -tln 2>/dev/null | awk '{print $4}' | grep -qE "[:.]${p}$"; then
+                ok "  Port $p mendengarkan"
+            else
+                err "  Port $p TIDAK mendengarkan meski ada di sshd_config"
+            fi
+        done
+    else
+        err "sshd_config TIDAK SAH setelah penambahan Port — reload dilewati."
+        err "  Periksa: sshd -t"
+        err "  Port ${SSH_PORT}/${CLIENT_SSH_PORT} belum aktif sampai config diperbaiki."
+    fi
 fi
 
 # ---------------------------------------------------------- 6. systemd unit
