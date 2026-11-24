@@ -24,30 +24,64 @@ mkdir -p /etc/xray
 echo -e "[ ${green}INFO${NC} ] Checking... "
 apt install iptables iptables-persistent -y
 sleep 1
-echo -e "[ ${green}INFO$NC ] Setting ntpdate"
-ntpdate pool.ntp.org 
-timedatectl set-ntp true
+
+# ---------------------------------------------------------------
+# Sinkronisasi waktu. Blok lama bermasalah dalam tiga hal:
+#
+# 1. "systemctl enable chronyd" dijalankan sebelum paket chrony
+#    dipasang (baru di baris 48). Unitnya belum ada, jadi perintah itu
+#    gagal dan mengotori keluaran instalasi.
+# 2. "chronyd" bukan nama unit di Ubuntu/Debian — yang benar "chrony".
+#    Keduanya dipanggil, satu pasti gagal.
+# 3. "ntpdate pool.ntp.org" dijalankan sebelum ntpdate dipasang, dan
+#    ntpdate sudah usang di Ubuntu 24.04. Bila jam VPS melenceng jauh,
+#    sertifikat TLS bisa ditolak saat mengunduh paket.
+#
+# Urutan yang benar: pasang paket dulu, lalu aktifkan, lalu verifikasi.
+# ---------------------------------------------------------------
+echo -e "[ ${green}INFO$NC ] Menyiapkan sinkronisasi waktu"
+
+# Pastikan paket waktu tersedia (idempoten: apt tidak memasang ulang)
+if ! dpkg -s chrony >/dev/null 2>&1; then
+    apt-get install -y -qq chrony >/dev/null 2>&1 || true
+fi
+
+# Nama unit: coba chrony dulu (Ubuntu/Debian), chronyd hanya bila ada
+_waktu_unit=""
+for u in chrony chronyd; do
+    if systemctl list-unit-files 2>/dev/null | grep -q "^${u}\.service"; then
+        _waktu_unit="$u"
+        break
+    fi
+done
+
+if [ -n "$_waktu_unit" ]; then
+    systemctl enable "$_waktu_unit" >/dev/null 2>&1 || true
+    systemctl restart "$_waktu_unit" >/dev/null 2>&1 || true
+    echo -e "[ ${green}ok${NC} ] $_waktu_unit aktif"
+else
+    # Fallback: systemd-timesyncd, selalu ada di Ubuntu
+    systemctl enable systemd-timesyncd >/dev/null 2>&1 || true
+    systemctl restart systemd-timesyncd >/dev/null 2>&1 || true
+    echo -e "[ ${yell}WARN${NC} ] chrony tidak tersedia, memakai systemd-timesyncd"
+fi
+
+# Zona waktu Indonesia
+timedatectl set-timezone Asia/Jakarta 2>/dev/null || \
+    ln -sf /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
+
 sleep 1
-echo -e "[ ${green}INFO$NC ] Enable chronyd"
-systemctl enable chronyd
-systemctl restart chronyd
-sleep 1
-echo -e "[ ${green}INFO$NC ] Enable chrony"
-systemctl enable chrony
-systemctl restart chrony
-timedatectl set-timezone Asia/Jakarta
-sleep 1
-echo -e "[ ${green}INFO$NC ] Setting chrony tracking"
-chronyc sourcestats -v
-chronyc tracking -v
+echo -e "[ ${green}INFO$NC ] Status sinkronisasi waktu"
+# chronyc hanya ada bila paket chrony terpasang
+if command -v chronyc >/dev/null 2>&1; then
+    chronyc tracking 2>/dev/null | head -4 || true
+fi
+timedatectl status 2>/dev/null | grep -iE 'Time zone|synchronized|NTP' || true
+
 echo -e "[ ${green}INFO$NC ] Setting dll"
-apt clean all && apt update
-apt install curl socat xz-utils wget apt-transport-https gnupg gnupg2 gnupg1 dnsutils lsb-release -y 
-apt install socat cron bash-completion ntpdate -y
-ntpdate pool.ntp.org
-apt -y install chrony
-apt install zip -y
-apt install curl pwgen openssl netcat cron -y
+apt clean all >/dev/null 2>&1 || true
+apt update -qq >/dev/null 2>&1 || true
+apt install -y curl socat xz-utils wget apt-transport-https gnupg dnsutils lsb-release zip pwgen openssl netcat-openbsd cron 2>/dev/null || true
 
 
 # install xray
