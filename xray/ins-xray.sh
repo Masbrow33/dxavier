@@ -141,13 +141,85 @@ chmod 644 /var/log/xray/*.log 2>/dev/null || true
 
 ## crt xray
 systemctl stop nginx
-mkdir /root/.acme.sh
-curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
-chmod +x /root/.acme.sh/acme.sh
-/root/.acme.sh/acme.sh --upgrade --auto-upgrade
-/root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-/root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
-~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+
+# ---------------------------------------------------------------
+# Sertifikat TLS. Blok lama menjalankan acme.sh tanpa memeriksa hasil:
+#
+#   acme.sh --issue -d $domain --standalone -k ec-256
+#   acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt
+#
+# Bila penerbitan gagal — domain belum propagate, port 80 diblokir,
+# kena rate limit Let's Encrypt, atau $domain berupa IP address (LE
+# TIDAK menerbitkan sertifikat untuk IP) — acme.sh tetap mencetak
+# "Installing full chain to: /etc/xray/xray.crt" tetapi berkasnya
+# berukuran 0 byte. nginx.conf lalu merujuk berkas kosong itu, nginx
+# gagal start, dan SEMUA path WebSocket ikut mati. Pengguna hanya
+# melihat "nginx failed" tanpa tahu sebabnya.
+#
+# Sekarang: sertifikat diverifikasi dulu, dan bila tidak sah dibuat
+# self-signed agar layanan tetap hidup.
+# ---------------------------------------------------------------
+
+_buat_selfsigned() {
+    mkdir -p /etc/xray
+    openssl req -x509 -nodes -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+        -keyout /etc/xray/xray.key -out /etc/xray/xray.crt -days 3650 \
+        -subj "/C=ID/ST=Jakarta/L=Jakarta/O=EkoBellick/CN=${domain}" \
+        >/dev/null 2>&1
+    chmod 600 /etc/xray/xray.key 2>/dev/null
+    chmod 644 /etc/xray/xray.crt 2>/dev/null
+}
+
+_cert_sah() {
+    [ -s /etc/xray/xray.crt ] || return 1
+    openssl x509 -noout -in /etc/xray/xray.crt >/dev/null 2>&1
+}
+
+# Apakah $domain berupa alamat IP? Let's Encrypt tidak menerbitkannya.
+_is_ip() {
+    case "$1" in
+        *[a-zA-Z]) return 1 ;;   # ada huruf -> domain
+    esac
+    printf '%s' "$1" | grep -Eq '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'
+}
+
+if _is_ip "$domain"; then
+    echo -e "[ ${yell}WARN${NC} ] Domain '$domain' berupa alamat IP."
+    echo -e "[ ${yell}WARN${NC} ] Let's Encrypt tidak menerbitkan sertifikat untuk IP."
+    echo -e "[ ${INFO} ] Memakai sertifikat self-signed agar nginx tetap hidup."
+    _buat_selfsigned
+else
+    mkdir -p /root/.acme.sh
+    curl -fsSL https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh 2>/dev/null
+    chmod +x /root/.acme.sh/acme.sh 2>/dev/null
+
+    if [ -x /root/.acme.sh/acme.sh ]; then
+        /root/.acme.sh/acme.sh --upgrade --auto-upgrade >/dev/null 2>&1 || true
+        /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1 || true
+        /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256 2>&1 | tail -5
+        /root/.acme.sh/acme.sh --installcert -d "$domain" \
+            --fullchainpath /etc/xray/xray.crt \
+            --keypath /etc/xray/xray.key 2>&1 | tail -3
+    fi
+
+    # Verifikasi: berkas harus ada, tidak kosong, dan benar-benar X.509
+    if ! _cert_sah; then
+        echo -e "[ ${yell}WARN${NC} ] Sertifikat Let's Encrypt gagal dibuat untuk '$domain'."
+        echo -e "[ ${yell}WARN${NC} ] Penyebab umum: domain belum mengarah ke IP ini,"
+        echo -e "[ ${yell}WARN${NC} ] port 80 tertutup, atau kena batas Let's Encrypt."
+        echo -e "[ ${INFO} ] Memakai sertifikat self-signed agar layanan tetap hidup."
+        _buat_selfsigned
+    else
+        echo -e "[ ${green}ok${NC} ] Sertifikat Let's Encrypt terpasang untuk $domain"
+    fi
+fi
+
+# Jaring pengaman terakhir: kalau masih tidak sah, jangan biarkan nginx
+# memakai berkas rusak.
+if ! _cert_sah; then
+    _buat_selfsigned
+fi
+echo -e "[ ${INFO} ] Sertifikat: $(openssl x509 -noout -subject -in /etc/xray/xray.crt 2>/dev/null | sed 's/subject=//' | cut -c1-60)"
 
 # nginx renew ssl
 echo -n '#!/bin/bash
