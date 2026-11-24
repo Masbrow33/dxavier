@@ -1,4 +1,11 @@
 #!/bin/bash
+# Warna didefinisikan sendiri: script ini dijalankan sebagai proses
+# terpisah, sedangkan variabel warna di setup.sh tidak di-export,
+# sehingga tanpa ini semua pesan tampil tanpa warna.
+green=$'\033[0;32m'
+yell=$'\033[1;33m'
+NC=$'\033[0m'
+
 dateFromServer=$(curl -v --insecure --silent https://google.com/ 2>&1 | grep Date | sed -e 's/< Date: //')
 biji=`date +"%Y-%m-%d" -d "$dateFromServer"`
 #########################
@@ -14,14 +21,35 @@ curl -fsSL https://rclone.org/install.sh | bash > /dev/null 2>&1
 printf "q\n" | rclone config > /dev/null 2>&1
 sleep 1
 echo -e "[ ${green}INFO${NC} ] Downloading rclone config ... "
-wget -q -O /root/.config/rclone/rclone.conf "https://raw.githubusercontent.com/Masbrow33/dxavier/main/backup/rclone.conf"
-git clone https://github.com/magnific0/wondershaper.git &> /dev/null
-cd wondershaper
-sleep 1
-echo -e "[ ${green}INFO${NC} ] Installing wondershaper... "
-make install > /dev/null 2>&1
-cd
-rm -rf wondershaper > /dev/null 2>&1
+# Unduh lewat berkas sementara: rclone.conf yang kosong membuat semua
+# backup gagal tanpa pesan yang jelas.
+_rclone_dir=/root/.config/rclone
+mkdir -p "$_rclone_dir"
+_rclone_tmp=$(mktemp /tmp/rclone.XXXXXX)
+if wget -q --timeout=25 --tries=2 -O "$_rclone_tmp" \
+     "https://raw.githubusercontent.com/Masbrow33/dxavier/main/backup/rclone.conf" \
+   && [ -s "$_rclone_tmp" ]; then
+    mv -f "$_rclone_tmp" "$_rclone_dir/rclone.conf"
+    chmod 600 "$_rclone_dir/rclone.conf"
+    echo -e "[ ${green}ok${NC} ] rclone.conf terpasang"
+else
+    rm -f "$_rclone_tmp"
+    echo -e "[ ${yell}WARN${NC} ] rclone.conf gagal diunduh, backup cloud tidak siap"
+fi
+
+# wondershaper: hapus dulu sisa clone sebelumnya, kalau tidak
+# "git clone" gagal ("already exists") dan "cd wondershaper" ikut gagal.
+rm -rf /root/wondershaper
+if git clone --depth 1 https://github.com/magnific0/wondershaper.git /root/wondershaper &> /dev/null; then
+    cd /root/wondershaper || true
+    sleep 1
+    echo -e "[ ${green}INFO${NC} ] Installing wondershaper... "
+    make install > /dev/null 2>&1
+    cd || true
+    rm -rf /root/wondershaper > /dev/null 2>&1
+else
+    echo -e "[ ${yell}WARN${NC} ] wondershaper gagal di-clone, pembatas bandwidth dilewati"
+fi
 echo > /home/limit
 
 pkgs='msmtp-mta ca-certificates bsd-mailx'
@@ -60,9 +88,29 @@ EOF
 chown -R www-data:www-data /etc/msmtprc
 sleep 1
 echo -e "[ ${green}INFO${NC} ] Downloading files... "
-wget -q -O /usr/bin/backup "https://raw.githubusercontent.com/Masbrow33/dxavier/main/backup/backup.sh" && chmod +x /usr/bin/backup
-wget -q -O /usr/bin/restore "https://raw.githubusercontent.com/Masbrow33/dxavier/main/backup/restore.sh" && chmod +x /usr/bin/restore
-wget -q -O /usr/bin/cleaner "https://raw.githubusercontent.com/Masbrow33/dxavier/main/backup/logcleaner.sh" && chmod +x /usr/bin/cleaner
+# Unduh lewat berkas sementara. Pola lama "wget -O && chmod +x" membuat
+# berkas kosong hasil unduhan yang gagal tetap menjadi executable —
+# /usr/bin/cleaner lalu dijalankan cron setiap 6 jam dan gagal terus.
+ambil_tool() {
+    local src="$1" dst="$2" tmpf
+    tmpf=$(mktemp /tmp/bt.XXXXXX)
+    if wget -q --timeout=25 --tries=2 -O "$tmpf" \
+         "https://raw.githubusercontent.com/Masbrow33/dxavier/main/backup/$src.sh" \
+       && [ -s "$tmpf" ] && bash -n "$tmpf" 2>/dev/null; then
+        mv -f "$tmpf" "/usr/bin/$dst"
+        chmod +x "/usr/bin/$dst"
+        echo -e "[ ${green}ok${NC} ] $dst"
+        return 0
+    fi
+    rm -f "$tmpf"
+    rm -f "/usr/bin/$dst"
+    echo -e "[ ${yell}WARN${NC} ] $dst gagal dipasang"
+    return 1
+}
+
+ambil_tool backup    backup
+ambil_tool restore   restore
+ambil_tool logcleaner cleaner
 
 if [ ! -f "/etc/cron.d/cleaner" ]; then
 cat> /etc/cron.d/cleaner << END
