@@ -62,7 +62,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=${BADVPN_DIR}/badvpn/badvpn-udpgw -l 127.0.0.1:$port -t 127.0.0.1:7300 -m 1500
+ExecStart=${BADVPN_DIR}/badvpn/badvpn-udpgw --listen-addr 127.0.0.1:$port --max-clients 1000 --max-connections-per-client 10
 Restart=on-failure
 RestartSec=5
 
@@ -70,6 +70,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
     chmod 644 /etc/systemd/system/badvpn-udpgw-${port}.service
+    systemctl daemon-reload 2>/dev/null
     systemctl enable badvpn-udpgw-${port}.service 2>/dev/null
     systemctl start badvpn-udpgw-${port}.service 2>/dev/null
     ok "  UDP Gateway port $port aktif"
