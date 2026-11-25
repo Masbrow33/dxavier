@@ -175,6 +175,30 @@ _cert_sah() {
     openssl x509 -noout -in /etc/xray/xray.crt >/dev/null 2>&1
 }
 
+# A self-signed certificate is syntactically valid but clients reject it.
+# Prefer the ACME artifact when acme.sh created it but --installcert failed.
+_cert_trusted_for_domain() {
+    [ -s /etc/xray/xray.crt ] || return 1
+    openssl x509 -noout -in /etc/xray/xray.crt >/dev/null 2>&1 || return 1
+    openssl x509 -in /etc/xray/xray.crt -noout -ext subjectAltName 2>/dev/null \
+        | grep -Eq "DNS:${domain}([, ]|$)" || return 1
+    _issuer=$(openssl x509 -in /etc/xray/xray.crt -noout -issuer 2>/dev/null)
+    _subject=$(openssl x509 -in /etc/xray/xray.crt -noout -subject 2>/dev/null)
+    [ -n "$_issuer" ] && [ "$_issuer" != "$_subject" ]
+}
+
+_install_acme_artifact() {
+    _acme_dir="/root/.acme.sh/${domain}_ecc"
+    [ -s "$_acme_dir/fullchain.cer" ] || return 1
+    [ -s "$_acme_dir/${domain}.key" ] || return 1
+    openssl x509 -noout -in "$_acme_dir/fullchain.cer" >/dev/null 2>&1 || return 1
+    cp -f "$_acme_dir/fullchain.cer" /etc/xray/xray.crt || return 1
+    cp -f "$_acme_dir/${domain}.key" /etc/xray/xray.key || return 1
+    chmod 600 /etc/xray/xray.key 2>/dev/null || true
+    chmod 644 /etc/xray/xray.crt 2>/dev/null || true
+    _cert_trusted_for_domain
+}
+
 # Apakah $domain berupa alamat IP? Let's Encrypt tidak menerbitkannya.
 _is_ip() {
     case "$1" in
@@ -197,9 +221,13 @@ else
         /root/.acme.sh/acme.sh --upgrade --auto-upgrade >/dev/null 2>&1 || true
         /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1 || true
         /root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256 2>&1 | tail -5
-        /root/.acme.sh/acme.sh --installcert -d "$domain" \
-            --fullchainpath /etc/xray/xray.crt \
-            --keypath /etc/xray/xray.key 2>&1 | tail -3
+        # Bila artefak ACME tersedia, gunakan langsung. Ini menutup kasus
+        # --installcert gagal tetapi sertifikat valid sudah tersimpan di _ecc.
+        if ! _install_acme_artifact; then
+            /root/.acme.sh/acme.sh --installcert -d "$domain" \
+                --fullchainpath /etc/xray/xray.crt \
+                --keypath /etc/xray/xray.key 2>&1 | tail -3
+        fi
     fi
 
     # Verifikasi: berkas harus ada, tidak kosong, dan benar-benar X.509
